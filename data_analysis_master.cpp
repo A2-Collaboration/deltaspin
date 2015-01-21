@@ -261,6 +261,22 @@ int main( int argc, char** argv) {
                    "MM_{p} [MeV]", "",
                    100,600,1100);
 
+    h.AddHistogram("pi0angle", "#pi^{0} #Theta angle (boosted)",
+                   "cos(#theta_{#pi^{0}})", "",
+                   180,-1,1);
+
+    h.AddHistogram("pi0angle_tagged", "#pi^{0} #Theta angle (boosted) vs tagged E",
+                   "E_{#gamma} [MeV]", "cos(#theta_{pi^{0}})",
+                   180,-1,1,14,110,300);
+
+    h.AddHistogram("delta_pz", "#Delta^{+} momentum magnitude (boosted)",
+                   "p_{#Delta^{+}} [MeV]","",
+                   100,0,300);
+
+    h.AddHistogram("delta_IM", "#Delta^{+} Invariant mass",
+                   "M_{#Delta^{+}} [MeV]","",
+                   100,800,1500);
+
 
     // ================================================
 
@@ -378,9 +394,24 @@ int main( int argc, char** argv) {
             TLorentzVector mmp = delta_beam - pi0;
             h["mmp"]->Fill( mmp.M() );
 
-            // TODO: plot boosted pi0 angle
+            // plot boosted pi0 angle, our desired plot!
+            h["pi0angle"]->Fill( cos(pi0_.Theta()) );
+            h["pi0angle_tagged"]->Fill( cos(pi0_.Theta()), beam.E());
 
-            // TODO: have a look at proton reconstruction quality
+            // have a look at proton reconstruction quality
+            // by creating a delta
+            if(hasproton) {
+                TLorentzVector delta = pi0 + proton;
+
+                TLorentzVector delta_ = delta;
+                delta_.Boost(boost);
+
+                h["delta_pz"]->Fill(delta_.P());
+                h["delta_IM"]->Fill(delta_.M());
+            }
+
+            // TODO: Make a prompt random subtraction of all histograms
+            // use the histogram manager for this!
         }
 
     }
