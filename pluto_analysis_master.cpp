@@ -181,7 +181,25 @@ int main( int argc, char** argv) {
         //=== Analysis  =============================
         // your code goes here!
 
+        // Acceptance cut, throw away stuff inside of holes
 
+        if( gamma1.Theta() < hole1 || gamma2.Theta() < hole1 ) continue;
+        if( gamma1.Theta() > hole2 || gamma2.Theta() > hole2 ) continue;
+
+        const Double_t eBeam = (beam.E() - m_proton);
+
+        TLorentzVector gammaBeam;   // the photon beam
+        gammaBeam.SetPxPyPzE(0,0,eBeam,eBeam);
+
+        const TVector3 boost = -(delta.BoostVector());
+
+        TLorentzVector bpion(pion);
+        bpion.Boost( boost );
+
+        const double a = bpion.Theta();
+
+        angle_cos->Fill( cos(a) );
+        brems->Fill(eBeam*1000);
 
         // ================================================
     }
