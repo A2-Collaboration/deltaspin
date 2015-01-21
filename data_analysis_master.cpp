@@ -257,11 +257,16 @@ int main( int argc, char** argv) {
                    "E_{#gamma} [MeV]", "",
                    100,100,450);
 
+    h.AddHistogram("mmp", "Missing Mass Proton",
+                   "MM_{p} [MeV]", "",
+                   100,600,1100);
+
 
     // ================================================
 
     //=== Some constants (add more if needed) ======
     const Double_t mass_proton = 938.2723; // proton mass in MeV.
+    const TLorentzVector target(0,0,0,mass_proton);
 
     // ================================================
 
@@ -356,9 +361,26 @@ int main( int argc, char** argv) {
             TLorentzVector pi0 = (gammas[0] + gammas[1]);
             h["2gIM"]->Fill(pi0.M());
 
-            // TODO: create 4-vector of delta from beam photon
-            // TODO: Boost pi0 into this frame
-            // TODO: look at missing mass from proton
+            // cut on pi0 invariant mass
+            if(pi0.M() < 110.0 || pi0.M() > 150.0)
+                continue;
+
+            // construct beam photon 4-vector and, using this, the delta restframe
+            const TLorentzVector beam(0,0,ETagged[tag_index],ETagged[tag_index]);
+            const TLorentzVector delta_beam(beam + target);
+            const TVector3 boost = -(delta_beam.BoostVector());
+
+            // boost pi0
+            TLorentzVector pi0_ = pi0;
+            pi0_.Boost(boost);
+
+            // missing mass plot (should peak at proton)
+            TLorentzVector mmp = delta_beam - pi0;
+            h["mmp"]->Fill( mmp.M() );
+
+            // TODO: plot boosted pi0 angle
+
+            // TODO: have a look at proton reconstruction quality
         }
 
     }
