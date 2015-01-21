@@ -179,16 +179,13 @@ int main( int argc, char** argv) {
     f->GetObject("treeTagger", treeTagger);
 
     // obtain the cut in the d_E-E plot for protons
-    // uncomment this once you have created the ProtonCut.root file
-    // TODO: Create ProtonCut.root file from canvas menu
-    // then finally uncomment this
-//    TFile* pcutf = new TFile("ProtonCut.root","read");
-//    TCutG* protoncut = NULL;
-//    pcutf->GetObject("CUTG",protoncut);
-//    if(!protoncut) {
-//        cerr << "No Proton cut found!" << endl;
-//        return 1;
-//    }
+    TFile* pcutf = new TFile("ProtonCut.root","read");
+    TCutG* protoncut = NULL;
+    pcutf->GetObject("CUTG",protoncut);
+    if(!protoncut) {
+        cerr << "No Proton cut found!" << endl;
+        return 1;
+    }
 
     // Declaration of leaves types
     Int_t           nParticles;    // number of particles in event
@@ -239,17 +236,19 @@ int main( int argc, char** argv) {
 
     Histogm h("Histo");
 
-    // example for creating 1D histogram
     h.AddHistogram("nPart", "number of particles",
                    "number of particles / event", "",
                    10, 0, 10); // 10 bins from 0 to 10
 
-    // example for creating 2D histogram
     h.AddHistogram("pid", "PID Bananas",
                    "CB Energy [MeV]", "dE [MeV]",
                    100,0,450, // 100 bins from 0 to 450 in x
                    100,0,20   // 100 bins from 0 to 20  in y
                    );
+
+    h.AddHistogram("2gIM", "2#gamma invariant mass",
+                   "M_{#gamma #gamma} [MeV]", "",
+                   100,0,300);
 
     // ================================================
 
@@ -274,6 +273,17 @@ int main( int argc, char** argv) {
 
         h["nPart"]->Fill(nParticles);
 
+        // some space for the particles
+        int ngammas=0;
+        TLorentzVector gammas[2];
+        TLorentzVector proton;
+        bool hasproton=false;
+
+        // might be that proton is lost,
+        // so two or three particle events are interesting
+        if( ! (nParticles==2 || nParticles==3))
+            continue;
+
         // loop over the particles in the event
         for(Long64_t part=0;part<nParticles;part++) {
 
@@ -291,12 +301,35 @@ int main( int argc, char** argv) {
             // fill PID banana plot
             h["pid"]->Fill(_E,_dE);
 
-            // TODO: find two gammas (neutral particles, no PID signal)
+            // find gammas, they have "no" PID energy (less than 0.25 MeV)
+            if(_dE<0.25) {
+                // already found enough gammas?
+                if(ngammas==2)
+                    continue;
+                gammas[ngammas] = MakeParticle(_E, _Theta, _Phi, 0.0);
+                ngammas++;
+            }
 
-            // TODO: find a proton (inside proton cut)
+            // find a proton
+            if( protoncut->IsInside(_E, _dE) ) {
+                if(!hasproton) {
+                    proton = MakeParticle(_E , _Theta, _Phi, mass_proton);
+                    hasproton=true;
+                }
+            }
         }
 
-        // TODO: Plot two gamma invariant mass spectrum
+        // we need exactly two gammas
+        if(ngammas != 2)
+            continue;
+
+        // construct a pi0
+        TLorentzVector pi0 = (gammas[0] + gammas[1]);
+        h["2gIM"]->Fill(pi0.M());
+
+        // TODO: Boost pi0 into delta rest frame
+        // (this needs some more changes to the code...)
+
     }
 
     //=== Draw histograms  =============================
