@@ -271,64 +271,70 @@ int main( int argc, char** argv) {
 
         // Work on events containing particles from here
 
-        h["nPart"]->Fill(nParticles);
+        // Loop over Tagger hits
+        for( int tag_index=0; tag_index < nTagged; ++tag_index ) {
 
-        // some space for the particles
-        int ngammas=0;
-        TLorentzVector gammas[2];
-        TLorentzVector proton;
-        bool hasproton=false;
+            const Double_t ttime =  TTagged[tag_index];
 
-        // might be that proton is lost,
-        // so two or three particle events are interesting
-        if( ! (nParticles==2 || nParticles==3))
-            continue;
+            // TODO: create prompt/random cut based on ttime histogram
 
-        // loop over the particles in the event
-        for(Long64_t part=0;part<nParticles;part++) {
+            h["nPart"]->Fill(nParticles);
 
-            // some handy local variables, please use them
-            Double_t _E = Ek[part];
-            Double_t _dE = d_E[part];
-            Double_t _Theta = Theta[part];
-            Double_t _Phi = Phi[part];
-            Int_t _App = Apparatus[part];
+            // some space for the particles
+            int ngammas=0;
+            TLorentzVector gammas[2];
+            TLorentzVector proton;
+            bool hasproton=false;
 
-            // no particles below 10 MeV in CB
-            if(_App != 1 || _E < 10)
+            // might be that proton is lost,
+            // so two or three particle events are interesting
+            if( ! (nParticles==2 || nParticles==3))
                 continue;
 
-            // fill PID banana plot
-            h["pid"]->Fill(_E,_dE);
+            // loop over the particles in the event
+            for(Long64_t part=0;part<nParticles;part++) {
 
-            // find gammas, they have "no" PID energy (less than 0.25 MeV)
-            if(_dE<0.25) {
-                // already found enough gammas?
-                if(ngammas==2)
+                // some handy local variables, please use them
+                Double_t _E = Ek[part];
+                Double_t _dE = d_E[part];
+                Double_t _Theta = Theta[part];
+                Double_t _Phi = Phi[part];
+                Int_t _App = Apparatus[part];
+
+                // no particles below 10 MeV in CB
+                if(_App != 1 || _E < 10)
                     continue;
-                gammas[ngammas] = MakeParticle(_E, _Theta, _Phi, 0.0);
-                ngammas++;
-            }
 
-            // find a proton
-            if( protoncut->IsInside(_E, _dE) ) {
-                if(!hasproton) {
-                    proton = MakeParticle(_E , _Theta, _Phi, mass_proton);
-                    hasproton=true;
+                // fill PID banana plot
+                h["pid"]->Fill(_E,_dE);
+
+                // find gammas, they have "no" PID energy (less than 0.25 MeV)
+                if(_dE<0.25) {
+                    // already found enough gammas?
+                    if(ngammas==2)
+                        continue;
+                    gammas[ngammas] = MakeParticle(_E, _Theta, _Phi, 0.0);
+                    ngammas++;
+                }
+
+                // find a proton
+                if( protoncut->IsInside(_E, _dE) ) {
+                    if(!hasproton) {
+                        proton = MakeParticle(_E , _Theta, _Phi, mass_proton);
+                        hasproton=true;
+                    }
                 }
             }
+
+            // we need exactly two gammas
+            if(ngammas != 2)
+                continue;
+
+            // construct a pi0
+            TLorentzVector pi0 = (gammas[0] + gammas[1]);
+            h["2gIM"]->Fill(pi0.M());
+
         }
-
-        // we need exactly two gammas
-        if(ngammas != 2)
-            continue;
-
-        // construct a pi0
-        TLorentzVector pi0 = (gammas[0] + gammas[1]);
-        h["2gIM"]->Fill(pi0.M());
-
-        // TODO: Boost pi0 into delta rest frame
-        // (this needs some more changes to the code...)
 
     }
 
