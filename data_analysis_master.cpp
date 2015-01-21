@@ -234,7 +234,8 @@ int main( int argc, char** argv) {
 
     //=== Set up histogram managers  ==========================
 
-    Histogm h("prompt");
+    Histogm prompt("prompt");
+    Histogm& h = prompt;
     h.AddHistogram("nPart", "number of particles",
                    "number of particles / event", "",
                    10, 0, 10); // 10 bins from 0 to 10
@@ -277,6 +278,8 @@ int main( int argc, char** argv) {
                    "M_{#Delta^{+}} [MeV]","",
                    100,800,1500);
 
+    // copy all histograms for random subtraction
+    Histogm random(h, "random");
 
     // ================================================
 
@@ -314,9 +317,8 @@ int main( int argc, char** argv) {
             } else
                 continue;
 
-            // for now, only use prompt hits
-            if(!isPrompt)
-                continue;
+            // select the right histogram
+            Histogm& h = isPrompt ? prompt : random;
 
             // some basic histograms
             h["nPart"]->Fill(nParticles);
@@ -409,15 +411,20 @@ int main( int argc, char** argv) {
                 h["delta_pz"]->Fill(delta_.P());
                 h["delta_IM"]->Fill(delta_.M());
             }
-
-            // TODO: Make a prompt random subtraction of all histograms
-            // use the histogram manager for this!
         }
 
     }
 
+    //=== Prompt - Random  =============================
+    Histogm diff(prompt,"diff");
+    diff.AddScaled(random, -1.0);
+    // ================================================
+
+
     //=== Draw histograms  =============================
-    h.Draw();
+    random.Draw();
+    prompt.Draw();
+    diff.Draw();
     // ================================================
 
     output->Write(); // make sure all histograms are on disk
