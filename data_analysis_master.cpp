@@ -21,8 +21,12 @@ using namespace std;
 
 // Make a lorentz vector for a particle with mass m
 TLorentzVector MakeParticle( Double_t E, Double_t theta, Double_t phi, Double_t m ) {
-    // TODO: look up TLorentzVector and construct it
-    // from given parameters E, theta, phi and rest mass m
+    E += m;
+    const Double_t p = sqrt( E*E - m*m );
+    TVector3 pv(1,0,0);
+    pv.SetMagThetaPhi(p,theta*TMath::DegToRad(),phi*TMath::DegToRad());
+    TLorentzVector l(pv, E);
+    return l;
 }
 
 // Class that groups histograms together
@@ -176,6 +180,8 @@ int main( int argc, char** argv) {
 
     // obtain the cut in the d_E-E plot for protons
     // uncomment this once you have created the ProtonCut.root file
+    // TODO: Create ProtonCut.root file from canvas menu
+    // then finally uncomment this
 //    TFile* pcutf = new TFile("ProtonCut.root","read");
 //    TCutG* protoncut = NULL;
 //    pcutf->GetObject("CUTG",protoncut);
@@ -266,7 +272,7 @@ int main( int argc, char** argv) {
 
         // Work on events containing particles from here
 
-        // TODO: Fill histogram h["nPart"]
+        h["nPart"]->Fill(nParticles);
 
         // loop over the particles in the event
         for(Long64_t part=0;part<nParticles;part++) {
@@ -278,9 +284,19 @@ int main( int argc, char** argv) {
             Double_t _Phi = Phi[part];
             Int_t _App = Apparatus[part];
 
-            // TODO: cut on particles in CB
-            // TODO: fill histogram h["pid"]
+            // no particles below 10 MeV in CB
+            if(_App != 1 || _E < 10)
+                continue;
+
+            // fill PID banana plot
+            h["pid"]->Fill(_E,_dE);
+
+            // TODO: find two gammas (neutral particles, no PID signal)
+
+            // TODO: find a proton (inside proton cut)
         }
+
+        // TODO: Plot two gamma invariant mass spectrum
     }
 
     //=== Draw histograms  =============================
