@@ -234,8 +234,7 @@ int main( int argc, char** argv) {
 
     //=== Set up histogram managers  ==========================
 
-    Histogm h("Histo");
-
+    Histogm h("prompt");
     h.AddHistogram("nPart", "number of particles",
                    "number of particles / event", "",
                    10, 0, 10); // 10 bins from 0 to 10
@@ -249,6 +248,15 @@ int main( int argc, char** argv) {
     h.AddHistogram("2gIM", "2#gamma invariant mass",
                    "M_{#gamma #gamma} [MeV]", "",
                    100,0,300);
+
+    h.AddHistogram("tag_time", "Tagger time",
+                   "t [ns]", "",
+                   100,-50,50);
+
+    h.AddHistogram("tag_energy", "Tagged Photon Energy",
+                   "E_{#gamma} [MeV]", "",
+                   100,100,450);
+
 
     // ================================================
 
@@ -276,9 +284,23 @@ int main( int argc, char** argv) {
 
             const Double_t ttime =  TTagged[tag_index];
 
-            // TODO: create prompt/random cut based on ttime histogram
+            // decide if tagger hit is prompt or random
+            bool isPrompt = false;
+            if( ttime > -8 && ttime < 8 ) {
+                isPrompt = true;
+            } else if( ttime > -16 && ttime < 16 ) {
+                isPrompt = false;
+            } else
+                continue;
 
+            // for now, only use prompt hits
+            if(!isPrompt)
+                continue;
+
+            // some basic histograms
             h["nPart"]->Fill(nParticles);
+            h["tag_energy"]->Fill(ETagged[tag_index]);
+            h["tag_time"]->Fill(ttime);
 
             // some space for the particles
             int ngammas=0;
@@ -334,6 +356,9 @@ int main( int argc, char** argv) {
             TLorentzVector pi0 = (gammas[0] + gammas[1]);
             h["2gIM"]->Fill(pi0.M());
 
+            // TODO: create 4-vector of delta from beam photon
+            // TODO: Boost pi0 into this frame
+            // TODO: look at missing mass from proton
         }
 
     }
